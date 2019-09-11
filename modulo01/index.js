@@ -1,9 +1,59 @@
 const express = require("express");
 
 const server = express();
-server.get("/users/:id", (req, res) => {
-  const { id } = req.params;
-  return res.json({ message: `buscando id ${id}` });
+
+server.use(express.json());
+
+const users = ["Jose", "Claudio", "Roberto"];
+
+server.use((req, res, next) => {
+  console.log(`Metodod ${req.method}; URL: ${req.url}`);
+  return next();
+});
+
+function checkUserExists(req, res, next) {
+  if (!req.body.name) {
+    return res.status(400).json({ error: "User not found on body" });
+  }
+
+  return next();
+}
+function checkUserInArray(req, res, next) {
+  const user = users[req.params.index];
+  if (!user) {
+    return res.status(400).json({ error: "user dos not exists" });
+  }
+  req.user = user;
+  return next();
+}
+
+server.get("/users/", (req, res) => {
+  return res.json(users);
+});
+
+server.get("/users/:index", checkUserInArray, (req, res) => {
+  return res.json(req.user);
+});
+
+server.post("/users", checkUserExists, (req, res) => {
+  const { name } = req.body;
+  users.push(name);
+
+  return res.json(users);
+});
+
+server.put("/users/:index", checkUserInArray, checkUserExists, (req, res) => {
+  const { index } = req.params;
+  const { name } = req.body;
+  users[index] = name;
+  return res.json(users);
+});
+
+server.delete("/users/:index", checkUserInArray, (req, res) => {
+  const { index } = req.params;
+  users.splice(index, 1);
+
+  return res.send();
 });
 
 server.listen(3000);
